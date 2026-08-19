@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Meeting Minutes",
+  "type": "object",
+  "required": ["title", "date", "attendees", "purpose", "discussion", "decisions", "open_issues", "action_items", "next_meeting", "notes"],
+  "additionalProperties": false,
+  "properties": {
+    "title": { "type": "string" },
+    "date": { "type": ["string", "null"] },
+    "attendees": { "type": "array", "items": { "type": "string" } },
+    "purpose": { "type": ["string", "null"] },
+    "discussion": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["topic", "points"],
+        "additionalProperties": false,
+        "properties": {
+          "topic": { "type": "string" },
+          "points": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "decisions": { "type": "array", "items": { "type": "string" } },
+    "open_issues": { "type": "array", "items": { "type": "string" } },
+    "action_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task", "owner", "due"],
+        "additionalProperties": false,
+        "properties": {
+          "task": { "type": "string" },
+          "owner": { "type": ["string", "null"] },
+          "due": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "next_meeting": { "type": ["string", "null"] },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

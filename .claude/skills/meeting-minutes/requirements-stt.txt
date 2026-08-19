@@ -1,0 +1,4 @@
+faster-whisper>=1.0.0
+groq>=0.11.0
+# Groq 업로드 한도 초과 오디오를 자동 재인코딩(16kHz 모노)하기 위한 번들 ffmpeg
+imageio-ffmpeg>=0.4.9
