@@ -176,10 +176,11 @@ def read_font(paragraph):
     스타일 기본값으로 렌더되므로, 같은 자리에 글꼴이 섞인다. 그래서 그 자리의
     글꼴을 읽어 우리가 채우는 런에 그대로 입힌다.
     """
-    sources = [run._r.find(qn("w:rPr")) for run in paragraph.runs]
-    pPr = paragraph._p.find(qn("w:pPr"))
+    # Paragraph : 문단,  Run : 같은 서식의 텍스트
+    sources = [run._r.find(qn("w:rPr")) for run in paragraph.runs] # sources : 글꼴 정보를 담고 있는 rPr를 모아 놓은 리스트 
+    pPr = paragraph._p.find(qn("w:pPr")) # pPr : 문단(Paragraph)의 속성 
     if pPr is not None:  # 런을 지운 뒤에도 남는 문단 부호 서식(예시 문구 제거 대비)
-        sources.append(pPr.find(qn("w:rPr")))
+        sources.append(pPr.find(qn("w:rPr"))) # sources라는 리스트의 append() 함수를 호출
     for rPr in sources:
         if rPr is None:
             continue

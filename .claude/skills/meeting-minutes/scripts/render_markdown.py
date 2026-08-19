@@ -3,7 +3,6 @@ import sys
 
 from validate import load_minutes
 
-
 def _md_cell(value: str) -> str:
     """Markdown 표 셀용 이스케이프.
 
@@ -32,7 +31,7 @@ def render_markdown(data: dict) -> str:
     lines.append("")
 
     lines.append("## 회의 목적")
-    lines.append(data["purpose"] or "(없음)")
+    lines.append(data["purpose"] or "(없음)")  # 
     lines.append("")
 
     lines.append("## 논의 내용")
