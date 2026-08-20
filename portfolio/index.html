@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의록 자동화 파이프라인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<style>
+/* ═══ 토큰 ═══════════════════════════════════════════════════════════ */
+:root{
+  --paper:#EFF1EE;        /* 갱지 — 탈색된 녹회색 */
+  --surface:#F8F9F7;
+  --ink:#171B1A;          /* 청록빛 먹 */
+  --ink-2:#3D4642;
+  --muted:#6B7370;
+  --rule:#C6CCC5;         /* 표 괘선 */
+  --rule-2:#DDE1DA;
+  --seal:#C0362C;         /* 인주 — 실제 산출물의 "입력필요" 색 */
+  --seal-soft:#F0DAD6;
+  --shade:#E4E7E1;        /* 양식 음영 칸 */
+  --ok:#2F6B4F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131614; --surface:#1A1E1B; --ink:#E7EAE4; --ink-2:#B4BCB5;
+    --muted:#8C948C; --rule:#333A34; --rule-2:#262B27; --seal:#E2685A;
+    --seal-soft:#3A211D; --shade:#212623; --ok:#6FB48F;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131614; --surface:#1A1E1B; --ink:#E7EAE4; --ink-2:#B4BCB5;
+  --muted:#8C948C; --rule:#333A34; --rule-2:#262B27; --seal:#E2685A;
+  --seal-soft:#3A211D; --shade:#212623; --ok:#6FB48F;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+  font-weight:400; font-size:16px; line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.serif{font-family:"Gowun Batang","Batang","Apple SD Gothic Neo",serif}
+.mono{font-family:"IBM Plex Mono","D2Coding",ui-monospace,monospace;
+      font-variant-numeric:tabular-nums}
+
+/* ═══ 골격 — 양식의 2열 구조 ══════════════════════════════════════════ */
+.sheet{max-width:1120px; margin:0 auto; padding:0 clamp(16px,4vw,40px)}
+
+section{border-top:1px solid var(--rule); padding:clamp(36px,5vw,60px) 0}
+section:first-of-type{border-top:none}
+
+.row{display:grid; grid-template-columns:150px minmax(0,1fr); gap:clamp(20px,4vw,44px)}
+@media (max-width:760px){ .row{grid-template-columns:1fr; gap:14px} }
+
+/* 자간 벌린 공문서 라벨 */
+.label{
+  font-size:12px; font-weight:600; letter-spacing:.34em;
+  color:var(--muted); text-transform:uppercase; line-height:1.9;
+  padding-top:.55em; white-space:nowrap;
+}
+.label .n{
+  font-family:"IBM Plex Mono",monospace; letter-spacing:.08em;
+  color:var(--seal); margin-right:.7em;
+}
+
+h2{
+  font-family:"Gowun Batang","Batang",serif; font-weight:700;
+  font-size:clamp(24px,3.4vw,33px); line-height:1.35; letter-spacing:-.01em;
+  margin:0 0 .55em; text-wrap:balance;
+}
+h3{
+  font-size:16px; font-weight:600; letter-spacing:-.005em;
+  margin:2.2em 0 .5em;
+}
+h3:first-child{margin-top:0}
+p{margin:0 0 1em; max-width:64ch; color:var(--ink-2)}
+p.lead{font-size:clamp(17px,1.9vw,19px); color:var(--ink); line-height:1.7}
+strong{font-weight:600; color:var(--ink)}
+a{color:var(--seal)}
+em.q{font-style:normal; color:var(--muted)}
+
+.hr{height:1px; background:var(--rule-2); margin:2.2em 0}
+
+/* ═══ 표제부 ══════════════════════════════════════════════════════════ */
+.masthead{padding:clamp(44px,7vw,84px) 0 clamp(30px,4vw,44px)}
+.eyebrow{
+  font-size:11px; letter-spacing:.42em; font-weight:600;
+  color:var(--seal); text-transform:uppercase; margin-bottom:1.9em;
+}
+h1{
+  font-family:"Gowun Batang","Batang",serif; font-weight:700;
+  font-size:clamp(33px,6.4vw,60px); line-height:1.22; letter-spacing:-.02em;
+  margin:0 0 .42em; text-wrap:balance;
+}
+h1 .thin{font-weight:400; color:var(--ink-2)}
+.deck{font-size:clamp(16px,2.1vw,19.5px); line-height:1.72; max-width:56ch; color:var(--ink-2); margin:0}
+.deck b{color:var(--ink); font-weight:600}
+
+.meta{
+  display:flex; flex-wrap:wrap; gap:0 clamp(24px,4vw,52px);
+  margin-top:clamp(30px,4vw,44px); padding-top:22px;
+  border-top:1px solid var(--rule);
+}
+.meta div{padding:6px 0}
+.meta dt{font-size:10.5px; letter-spacing:.28em; color:var(--muted); font-weight:600; text-transform:uppercase}
+.meta dd{margin:.35em 0 0; font-size:14.5px; font-weight:500}
+
+/* ═══ 지표 격자 — 양식 칸처럼 ════════════════════════════════════════ */
+.stats{
+  display:grid; grid-template-columns:repeat(3,1fr);
+  border:1px solid var(--rule); background:var(--rule); gap:1px;
+  margin:0;
+}
+@media (max-width:700px){ .stats{grid-template-columns:repeat(2,1fr)} }
+.stat{background:var(--surface); padding:20px 18px 18px}
+.stat .v{
+  font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums;
+  font-size:clamp(23px,3vw,30px); font-weight:500; line-height:1.15;
+  letter-spacing:-.02em; display:block;
+}
+.stat .v .u{font-size:.5em; font-weight:400; color:var(--muted); margin-left:.35em; letter-spacing:0}
+.stat .k{font-size:12px; color:var(--muted); margin-top:.7em; line-height:1.5; display:block}
+.stat.hi .v{color:var(--seal)}
+
+/* ═══ Before / After ═════════════════════════════════════════════════ */
+.ba{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule)}
+@media (max-width:760px){ .ba{grid-template-columns:1fr} }
+.ba > div{background:var(--surface); padding:22px 20px}
+.ba h4{
+  margin:0 0 1.1em; font-size:11px; letter-spacing:.3em; font-weight:600;
+  text-transform:uppercase; color:var(--muted);
+}
+.ba .after h4{color:var(--seal)}
+.steps{list-style:none; margin:0; padding:0; counter-reset:s}
+.steps li{
+  counter-increment:s; position:relative; padding:8px 0 8px 30px;
+  font-size:14.5px; line-height:1.6; color:var(--ink-2);
+  border-top:1px dotted var(--rule-2);
+}
+.steps li:first-child{border-top:none}
+.steps li::before{
+  content:counter(s,decimal-leading-zero); position:absolute; left:0; top:9px;
+  font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+}
+.steps.auto li::before{color:var(--seal)}
+.steps li.manual{color:var(--muted)}
+.steps li b{color:var(--ink); font-weight:600}
+.ba .foot{
+  margin:1.3em 0 0; padding-top:1em; border-top:1px solid var(--rule-2);
+  font-size:13px; color:var(--muted);
+}
+.ba .after .foot{color:var(--ink)}
+
+/* ═══ 양식 재현 표 ═══════════════════════════════════════════════════ */
+.formwrap{overflow-x:auto; border:1px solid var(--rule); background:var(--surface)}
+table.form{border-collapse:collapse; width:100%; min-width:560px; font-size:13.5px}
+table.form td{border:1px solid var(--rule); padding:9px 11px; vertical-align:top; line-height:1.62}
+table.form td.hd{
+  text-align:center; font-family:"Gowun Batang",serif; font-weight:700;
+  font-size:19px; letter-spacing:.6em; padding:15px; text-indent:.6em;
+}
+table.form td.lab{letter-spacing:.22em; color:var(--ink); white-space:nowrap; width:1%}
+table.form td.sec{
+  letter-spacing:.44em; text-indent:.44em; background:var(--shade);
+  font-weight:600; font-size:12.5px;
+}
+table.form td.val{min-height:70px}
+.todo{color:var(--seal); font-weight:700}
+.slot{color:var(--muted); font-size:12px; letter-spacing:.1em}
+.blk{margin:0; padding:0; list-style:none}
+.blk > li{padding:1px 0}
+.blk .sl{color:var(--muted); font-size:12px; letter-spacing:.06em; display:block; margin-top:.5em}
+.blk .sl:first-child{margin-top:0}
+.blk .tp{font-weight:600; color:var(--ink)}
+.blk .it{padding-left:1.1em; color:var(--ink-2)}
+.blk .it::before{content:"- "; color:var(--muted)}
+
+.cap{font-size:12.5px; color:var(--muted); margin:.9em 0 0; line-height:1.6; max-width:70ch}
+.cap b{color:var(--ink-2); font-weight:600}
+
+.two{display:grid; grid-template-columns:1fr 1fr; gap:clamp(18px,3vw,30px); align-items:start}
+@media (max-width:860px){ .two{grid-template-columns:1fr} }
+.mini{font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:var(--muted); font-weight:600; margin:0 0 .9em}
+
+/* ═══ 파이프라인 ═════════════════════════════════════════════════════ */
+.pipe{display:grid; gap:0; border:1px solid var(--rule); background:var(--surface)}
+.stage{display:grid; grid-template-columns:34px 1fr; border-top:1px solid var(--rule-2)}
+.stage:first-child{border-top:none}
+.stage .no{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+  border-right:1px solid var(--rule-2); display:flex; align-items:center;
+  justify-content:center; background:var(--paper);
+}
+.stage .bd{padding:14px 16px}
+.stage .t{font-weight:600; font-size:14.5px; margin:0 0 .25em}
+.stage .t .who{
+  font-size:10.5px; letter-spacing:.18em; font-weight:600; margin-left:.9em;
+  padding:2px 7px; border:1px solid var(--rule); color:var(--muted); vertical-align:1.5px;
+}
+.stage .t .who.llm{color:var(--seal); border-color:var(--seal-soft); background:var(--seal-soft)}
+.stage .d{margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.6}
+.contract{
+  padding:9px 16px 9px 50px; font-size:12px; color:var(--muted);
+  background:var(--paper); border-top:1px dashed var(--rule);
+}
+.contract .mono{color:var(--ink-2)}
+
+/* ═══ 코드 ═══════════════════════════════════════════════════════════ */
+pre{
+  margin:0; padding:16px 18px; overflow-x:auto; background:var(--surface);
+  border:1px solid var(--rule); font-size:12.5px; line-height:1.75;
+  font-family:"IBM Plex Mono","D2Coding",ui-monospace,monospace; color:var(--ink-2);
+}
+pre b{color:var(--ink); font-weight:500}
+pre .c{color:var(--muted)}
+pre .r{color:var(--seal)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:.88em;
+     background:var(--rule-2); padding:1px 5px; color:var(--ink)}
+
+/* ═══ 표 ═════════════════════════════════════════════════════════════ */
+.tblwrap{overflow-x:auto}
+table.data{border-collapse:collapse; width:100%; font-size:13.5px; min-width:460px}
+table.data th{
+  text-align:left; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:0 12px 9px 0;
+  border-bottom:1px solid var(--rule);
+}
+table.data td{padding:11px 12px 11px 0; border-bottom:1px solid var(--rule-2);
+              vertical-align:top; line-height:1.6; color:var(--ink-2)}
+table.data td:first-child{color:var(--ink); font-weight:500}
+table.data td .mono{font-size:12.5px}
+
+/* ═══ 접이식 상세 ════════════════════════════════════════════════════ */
+details{border-top:1px solid var(--rule-2)}
+details:last-of-type{border-bottom:1px solid var(--rule-2)}
+summary{
+  cursor:pointer; padding:16px 0 16px 28px; position:relative; list-style:none;
+  font-weight:600; font-size:15.5px; color:var(--ink);
+}
+summary::-webkit-details-marker{display:none}
+summary::before{
+  content:"+"; position:absolute; left:4px; top:15px; color:var(--seal);
+  font-family:"IBM Plex Mono",monospace; font-size:15px; transition:transform .18s;
+}
+details[open] summary::before{content:"−"}
+summary:focus-visible{outline:2px solid var(--seal); outline-offset:3px}
+summary .sub{display:block; font-weight:400; font-size:13px; color:var(--muted); margin-top:.3em}
+.dbody{padding:0 0 26px 28px}
+@media (max-width:600px){ .dbody{padding-left:0} }
+
+/* ═══ 역량 ═══════════════════════════════════════════════════════════ */
+.skills{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule)}
+@media (max-width:760px){ .skills{grid-template-columns:1fr} }
+.skill{background:var(--surface); padding:19px 18px}
+.skill .h{font-weight:600; font-size:14.5px; margin:0 0 .5em}
+.skill p{font-size:13.5px; margin:0; color:var(--ink-2); line-height:1.65}
+.skill .ev{
+  display:block; margin-top:.9em; padding-top:.75em; border-top:1px dotted var(--rule);
+  font-size:12px; color:var(--muted);
+}
+.skill .ev b{color:var(--seal); font-weight:600; font-family:"IBM Plex Mono",monospace}
+
+/* ═══ 꼬리 ═══════════════════════════════════════════════════════════ */
+footer{border-top:2px solid var(--ink); padding:30px 0 60px; margin-top:20px}
+footer .fine{font-size:12px; color:var(--muted); line-height:1.8}
+
+ul.plain{margin:0; padding:0 0 0 1.1em}
+ul.plain li{margin:.42em 0; color:var(--ink-2); font-size:14.5px; line-height:1.65}
+ul.plain li b{color:var(--ink)}
+
+/* ═══ 모션 ═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion:no-preference){
+  .rise{opacity:0; transform:translateY(11px); transition:opacity .6s ease, transform .6s ease}
+  .rise.in{opacity:1; transform:none}
+}
+
+/* ═══ 인쇄(PDF) ══════════════════════════════════════════════════════ */
+@media print{
+  body{background:#fff; color:#000; font-size:10.5pt}
+  .sheet{max-width:none; padding:0}
+  section{break-inside:auto; padding:18px 0}
+  details{break-inside:avoid}
+  details > summary{list-style:none}
+  details:not([open]) .dbody{display:block}
+  .rise{opacity:1 !important; transform:none !important}
+  .noprint{display:none}
+  a{color:#000; text-decoration:none}
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+<!-- ══════════════ 표제부 ══════════════ -->
+<header class="masthead">
+  <div class="eyebrow">개인 프로젝트 · 2026</div>
+  <h1>회의를 듣고<br><span class="thin">회사 양식에 채워 넣는</span> 파이프라인</h1>
+  <p class="deck">
+    녹음 파일이나 회의 메모를 넣으면 <b>10개 항목으로 구조화</b>되고,
+    사용자가 검토한 뒤 <b>자기 회사 회의록 양식(.docx)에 그대로 채워진 문서</b>가 나옵니다.
+    양식마다 다른 표 구조를 스스로 읽고 어느 칸에 무엇을 넣을지 판단합니다.
+  </p>
+  <dl class="meta">
+    <div><dt>기간</dt><dd>2026.07 – 08 <span class="mono">(5주)</span></dd></div>
+    <div><dt>역할</dt><dd>설계 · 구현 · 테스트 전담 (1인)</dd></div>
+    <div><dt>스택</dt><dd>Python · python-docx · docxtpl · jsonschema · pytest · Whisper</dd></div>
+    <div><dt>형태</dt><dd>Claude Code Skill <span class="mono">/meeting-minutes</span></dd></div>
+  </dl>
+</header>
+
+<!-- ══════════════ 성과 ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">01</span>성 과</div>
+    <div>
+      <h2>만들고 끝낸 게 아니라, 실제로 쓰고 있습니다</h2>
+      <p class="lead">
+        2026년 7월 27일부터 8월 20일까지 <strong>서로 다른 회사 양식 5종</strong>에
+        <strong>회의록 26건</strong>을 실제로 생성했습니다.
+        같은 회의를 5개 양식에 각각 채워도 재작업이 없었습니다.
+      </p>
+
+      <div class="stats">
+        <div class="stat hi">
+          <span class="v">26<span class="u">건</span></span>
+          <span class="k">실제 생성한 회의록 (2026.07.27 – 08.20)</span>
+        </div>
+        <div class="stat hi">
+          <span class="v">5<span class="u">종</span></span>
+          <span class="k">구조가 전혀 다른 회사 양식<br>KISA · 누리미디어 외 3종</span>
+        </div>
+        <div class="stat hi">
+          <span class="v">0<span class="u">줄</span></span>
+          <span class="k">새 양식이 와도 고치는 코드<br>매핑 판단만 새로 함</span>
+        </div>
+        <div class="stat">
+          <span class="v">44,481<span class="u">자</span></span>
+          <span class="k">가장 긴 처리 원문 → 6,039자 회의록<br>(약 1/7로 압축)</span>
+        </div>
+        <div class="stat">
+          <span class="v">0.76<span class="u">초</span></span>
+          <span class="k">그 회의록의 Markdown + docx<br>렌더링 실측 시간</span>
+        </div>
+        <div class="stat">
+          <span class="v">186<span class="u">개</span></span>
+          <span class="k">테스트 전부 통과<br>코드 2,191줄 : 테스트 2,355줄</span>
+        </div>
+      </div>
+      <p class="cap">
+        모든 수치는 저장소의 실제 산출물과 <code>pytest -q</code> 실행 결과에서 나온 값입니다.
+        <b>추정치나 예상치는 넣지 않았습니다.</b>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ Before / After ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">02</span>변 화</div>
+    <div>
+      <h2>병목은 요약이 아니라 <em class="q">그다음</em>이었습니다</h2>
+      <p>
+        요약해 주는 도구는 이미 많습니다. 그런데 실무에서 막히는 곳은 요약 다음입니다 —
+        결과를 다시 회사 양식 표에 하나씩 옮겨 붙이는 일. 이 프로젝트가 없앤 건 그 구간입니다.
+      </p>
+
+      <div class="ba">
+        <div class="before">
+          <h4>기존 — 손으로</h4>
+          <ol class="steps">
+            <li class="manual">녹음을 처음부터 다시 들으며 받아적기</li>
+            <li class="manual">무엇이 <b>결정</b>이고 무엇이 <b>미결</b>인지 가려내기</li>
+            <li class="manual">서술식 문장을 개조식으로 다듬기</li>
+            <li class="manual">회사 양식 워드 파일 열기</li>
+            <li class="manual">표 칸을 찾아 <b>항목마다 복사·붙여넣기</b></li>
+            <li class="manual">담당·기한 빈칸을 표시해 두고 관계자에게 확인</li>
+            <li class="manual">다른 부서 양식이면 <b>4–6단계를 처음부터 반복</b></li>
+          </ol>
+          <p class="foot">양식이 바뀌면 사람이 처음부터 다시 합니다.</p>
+        </div>
+        <div class="after">
+          <h4>지금 — 명령 한 번</h4>
+          <ol class="steps auto">
+            <li><b>/meeting-minutes</b> 호출, 녹음 파일 지정</li>
+            <li>STT → 10항목 추출 → <b>Markdown 미리보기</b> 자동</li>
+            <li>사람은 <b>미리보기를 읽고 고칠 것만</b> 말함</li>
+            <li>양식 지정 → 표 구조를 읽고 배치를 판단</li>
+            <li>승인하면 완성된 <b>.docx</b> 출력</li>
+          </ol>
+          <p class="foot">
+            사람이 하는 판단은 <strong>3단계 검토</strong> 하나로 줄었습니다.
+            양식이 몇 개든 4–5단계만 다시 돌면 됩니다.
+          </p>
+        </div>
+      </div>
+      <p class="cap">
+        사람의 검토 단계를 없애지 않고 <b>일부러 남겼습니다.</b>
+        회의록은 틀리면 안 되는 문서라, 자동화의 목표를 "사람 없이"가 아니라
+        <b>"사람이 확인만 하면 되게"</b>로 잡았습니다.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 결과물 ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">03</span>결 과 물</div>
+    <div>
+      <h2>빈 양식이 이렇게 채워집니다</h2>
+      <p>
+        아래는 실제로 처리한 <strong>KISA 회의록 양식</strong>의 구조입니다.
+        왼쪽이 받은 그대로의 빈 양식, 오른쪽이 파이프라인이 채운 결과입니다.
+        <em class="q">(회의 내용은 기밀 보호를 위해 저장소의 예시 데이터로 대체했습니다)</em>
+      </p>
+
+      <div class="two">
+        <div>
+          <p class="mini">받은 양식 — 표시자 없음</p>
+          <div class="formwrap">
+            <table class="form">
+              <tr><td class="hd" colspan="2">회의록</td></tr>
+              <tr><td class="lab" colspan="2">제 목 :</td></tr>
+              <tr><td class="lab">일 시 :</td><td class="lab">참 가 자</td></tr>
+              <tr><td class="lab">장 소 :</td><td class="lab">소 속 : 성명/직급 :</td></tr>
+              <tr><td class="lab" colspan="2">제 목 :</td></tr>
+              <tr><td class="sec" colspan="2">회 의 내 용</td></tr>
+              <tr><td class="val" colspan="2" style="height:150px"><span class="slot">(빈 칸)</span></td></tr>
+              <tr><td class="sec" colspan="2">향 후 일정 및 계획</td></tr>
+              <tr><td class="val" colspan="2" style="height:70px"><span class="slot">(빈 칸)</span></td></tr>
+              <tr><td class="sec" colspan="2">비 고</td></tr>
+              <tr><td class="val" colspan="2" style="height:50px"><span class="slot">(빈 칸)</span></td></tr>
+            </table>
+          </div>
+          <p class="cap">
+            <b>어려운 점</b> — <code>제 목 :</code> 라벨이 <b>두 번</b> 나오고,
+            내용 칸은 라벨 칸이 아니라 <b>그 아래 빈 행</b>이며,
+            <code>장 소</code>는 녹음에 없는 정보입니다.
+          </p>
+        </div>
+
+        <div>
+          <p class="mini">채운 결과 — 사람 손 안 댐</p>
+          <div class="formwrap">
+            <table class="form">
+              <tr><td class="hd" colspan="2">회의록</td></tr>
+              <tr><td class="lab" colspan="2">제 목 : 2026 3분기 제품 로드맵 회의</td></tr>
+              <tr><td class="lab">일 시 : 2026-07-16 14:00</td>
+                  <td class="lab">참 가 자 (총 3명)</td></tr>
+              <tr><td class="lab">장 소 : <span class="todo">입력필요</span></td>
+                  <td class="lab">김수민, 이정우, 박서연</td></tr>
+              <tr><td class="lab" colspan="2">제 목 : 3분기 로드맵·STT 연동 범위 확정</td></tr>
+              <tr><td class="sec" colspan="2">회 의 내 용</td></tr>
+              <tr><td class="val" colspan="2">
+                <ul class="blk">
+                  <li class="sl">[논의 내용]</li>
+                  <li class="tp">1. STT 연동 우선순위</li>
+                  <li class="it">실시간 STT는 3분기 범위 제외</li>
+                  <li class="it">배치 STT 우선 도입 의견 수렴</li>
+                  <li class="tp">2. 출력 포맷</li>
+                  <li class="it">Markdown 미리보기 후 docx 확정</li>
+                  <li class="sl">[결정 사항]</li>
+                  <li class="it">docx 변환은 python-docx로 진행</li>
+                  <li class="it">STT는 입력 어댑터 자리만 우선 확보</li>
+                  <li class="sl">[미결 사항]</li>
+                  <li class="it">실시간 STT 도입 시점 미정 (4분기 재논의)</li>
+                  <li class="it">엔진 로컬 vs 클라우드 보류 — 비용 vs 보안 이견</li>
+                </ul>
+              </td></tr>
+              <tr><td class="sec" colspan="2">향 후 일정 및 계획</td></tr>
+              <tr><td class="val" colspan="2">
+                <ul class="blk">
+                  <li class="sl">[실행 항목]</li>
+                  <li class="it">렌더러 PoC 작성 (이정우 / 2026-07-23)</li>
+                  <li class="it">샘플 원문 수집 (박서연 / <span class="todo">입력필요</span>)</li>
+                  <li class="sl">[다음 회의]</li>
+                  <li class="it">2026-07-23 14:00</li>
+                </ul>
+              </td></tr>
+              <tr><td class="sec" colspan="2">비 고</td></tr>
+              <tr><td class="val" colspan="2">
+                <ul class="blk">
+                  <li class="it">엔진 후보 벤치마크는 다음 스프린트</li>
+                  <li class="it">docx 서식은 사내 템플릿 확정 후 재검토</li>
+                </ul>
+              </td></tr>
+            </table>
+          </div>
+          <p class="cap">
+            두 번째 <code>제 목 :</code>에는 같은 값을 복사하지 않고 <b>회의 목적</b>을 넣었고,
+            녹음에 없는 값은 지어내지 않고 빨간 <span class="todo">입력필요</span>로 표시해
+            <b>사람이 채울 자리를 남깁니다.</b> 양식의 글꼴·자간·표 서식은 그대로 유지됩니다.
+          </p>
+          <p class="cap">
+            같은 과정을 거친 <b>실제 파일이 <span class="mono">samples/</span> 폴더에 들어 있습니다</b> —
+            빈 양식(<span class="mono">05</span>)과 채워진 결과(<span class="mono">08</span>)를 워드로 나란히 열어 보실 수 있습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 구조 ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">04</span>구 조</div>
+    <div>
+      <h2>판단은 LLM이, 변환은 코드가</h2>
+      <p>
+        설계의 중심에 이 경계선 하나를 뒀습니다.
+        <strong>사람의 판단이 필요한 일만 LLM에게 맡기고</strong>, 답이 정해진 일은 전부 코드로 고정했습니다.
+        경계가 흐려지지 않도록 단계 사이를 <strong>명시적인 데이터 계약</strong>으로만 연결했습니다.
+      </p>
+
+      <div class="pipe">
+        <div class="stage">
+          <div class="no">1</div>
+          <div class="bd">
+            <p class="t">입력 <span class="who">코드</span></p>
+            <p class="d">텍스트 · 로컬 STT(faster-whisper) · 클라우드 STT(Groq) — 어댑터 플러그인</p>
+          </div>
+        </div>
+        <div class="contract">계약 &nbsp;→&nbsp; <span class="mono">정규화된 회의 원문 (UTF-8 문자열)</span></div>
+
+        <div class="stage">
+          <div class="no">2</div>
+          <div class="bd">
+            <p class="t">추출 <span class="who llm">LLM</span></p>
+            <p class="d">회의 원문을 읽고 10개 항목으로 구조화 — 지시문(<code>SKILL.md</code>)이 규칙</p>
+          </div>
+        </div>
+        <div class="contract">계약 &nbsp;→&nbsp; <span class="mono">minutes.json — JSON Schema로 기계 검증되는 단일 진실 원천</span></div>
+
+        <div class="stage">
+          <div class="no">3</div>
+          <div class="bd">
+            <p class="t">Markdown 생성 <span class="who">코드</span></p>
+            <p class="d">사람이 읽고 고칠 미리보기 — 승인 전에는 docx를 만들지 않음</p>
+          </div>
+        </div>
+        <div class="contract">계약 &nbsp;→&nbsp; <span class="mono">사용자 승인</span></div>
+
+        <div class="stage">
+          <div class="no">4</div>
+          <div class="bd">
+            <p class="t">docx 출력 <span class="who">코드</span> <span class="who llm">LLM은 배치 판단만</span></p>
+            <p class="d">양식 없으면 기본 서식 / 있으면 구조를 읽어 배치 → 검증된 표시자 삽입 → 값 채움</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="two">
+        <div>
+          <h3>계약이 하는 일</h3>
+          <ul class="plain">
+            <li>Markdown과 docx가 <b>같은 스키마</b>를 소비 → 두 산출물이 어긋날 수 없음</li>
+            <li>렌더러가 파일을 <b>읽는 순간 자동 검증</b> → 규격 위반이면 잘못된 문서를 만드는 대신 <b>즉시 실패</b></li>
+            <li>없는 값은 <code>null</code>만 허용 → <b>지어내기를 타입으로 차단</b></li>
+            <li>출력 포맷을 늘려도 추출 단계는 그대로 재사용</li>
+          </ul>
+        </div>
+        <div>
+          <h3>확장 지점</h3>
+          <pre><span class="c"># scripts/adapters/__init__.py</span>
+REGISTRY = {
+  <b>"text"</b>:    text.transcribe,
+  <b>"whisper"</b>: whisper_local.transcribe,
+  <b>"groq"</b>:    groq_cloud.transcribe,
+}</pre>
+          <p class="cap">
+            새 입력 방식 추가 = <b>모듈 1개 + 이 표에 한 줄.</b>
+            실제로 v1은 텍스트 입력만 지원했고 STT는 자리만 비워 뒀는데,
+            나중에 STT 2종을 붙일 때 <b>추출·생성·출력 계층은 한 줄도 고치지 않았습니다.</b>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 난제 ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">05</span>난 제</div>
+    <div>
+      <h2>막혔던 지점과 푼 방법</h2>
+      <p>가장 어려웠던 세 가지입니다. 필요한 만큼만 펼쳐 보세요.</p>
+
+      <details open>
+        <summary>
+          1. 표시자가 없는 남의 양식을 어떻게 채우나
+          <span class="sub">이 프로젝트의 핵심. 코드 848줄로 가장 큰 모듈입니다.</span>
+        </summary>
+        <div class="dbody">
+          <p>
+            회사에서 받는 양식에는 <code>{{ title }}</code> 같은 치환 표시자가 없습니다.
+            그냥 <strong>평범한 워드 표</strong>입니다. 어디가 라벨이고 어디가 값 자리인지부터 알아내야 합니다.
+          </p>
+
+          <h3>해결 — 판단과 실행을 3단계로 쪼갰습니다</h3>
+          <pre>① inspect_template.py  <span class="c">양식 구조를 기계적으로 덤프 (의미 판단 없음)</span>
+                          ↓ 구조 JSON
+② LLM                  <span class="c">어느 항목을 어느 칸에 넣을지 결정</span>
+                          ↓ <b>필드 이름만</b> 담긴 매핑 (표시자 문법은 쓰지 않음)
+③ apply_form_mapping.py <span class="c">검증된 표시자만 삽입 → 문법 오류 원천 차단</span></pre>
+
+          <h3>글자가 있냐 없냐만 봐서는 값 자리를 못 찾습니다</h3>
+          <p>그래서 구조 덤프가 <strong>배치 신호 3가지</strong>를 함께 냅니다.</p>
+          <div class="tblwrap">
+            <table class="data">
+              <thead><tr><th>신호</th><th>무엇</th><th>없으면 생기는 사고</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">shaded</td><td>칸 배경색 유무 (회색·파랑·테마색 무관)</td>
+                    <td>색칠된 <b>라벨 칸에 본문을 박아 넣음</b></td></tr>
+                <tr><td class="mono">numbered</td><td>문단의 자동 번호·글머리 유무</td>
+                    <td>값을 적으라고 비워 둔 자리를 여백으로 오인 → 결과물에 <code>1.</code> <code>2.</code>만 남음</td></tr>
+                <tr><td class="mono">blocks</td><td>표와 문단이 놓인 <b>순서</b></td>
+                    <td>표 끝이 라벨로 끝나는 양식에서 진짜 값 자리(표 뒤 문단)를 놓침</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>실제로 만들어진 매핑</h3>
+          <pre><span class="c">// 앞에서 본 KISA 양식에 대해 실제로 생성된 mapping.json</span>
+{"row": 1,  "col": 0, "mode": "inline", "fields": ["title"]},
+{"row": 3,  "col": 0, "mode": <span class="r">"todo"</span>},                    <span class="c">← 장소: 녹음에 없음 → "입력필요"</span>
+{"row": 4,  "col": 0, "mode": "inline", "fields": [<b>"purpose"</b>]},   <span class="c">← 두 번째 "제 목 :" 칸</span>
+{"row": 6,  "col": 0, "mode": "block",  "fields": ["discussion","decisions","open_issues"]},
+{"row": 8,  "col": 0, "mode": "block",  "fields": ["action_items","next_meeting"]},
+{"row": 10, "col": 0, "mode": "block",  "fields": ["notes"], <b>"auto_label": false</b>}</pre>
+          <p class="cap">
+            LLM이 쓰는 것은 <b>고정된 10개 항목 이름과 4가지 모드뿐</b>입니다.
+            표시자 문법은 코드가 만듭니다. 어휘를 벗어나면 실행 시점에 막히므로,
+            <b>조용한 오배치 대신 명확한 실패</b>가 납니다.
+          </p>
+
+          <h3>양식과 기호가 겹치는 문제</h3>
+          <p>
+            양식이 이미 <code>1.</code> 번호를 쓰는 자리에 우리 소제목도 <code>1.</code>로 넣으면
+            두 계층이 구분되지 않습니다. 그래서 기호를 고정하지 않고
+            <strong>그 자리에서 양식이 실제로 쓰는 기호를 읽어 비껴가는 사다리</strong>를 만들었습니다.
+          </p>
+          <pre>_TOPIC_LADDER = ["num", "□", "◇", "▪"]   <span class="c"># 소제목</span>
+_ITEM_LADDER  = ["-", "·", "‣", "◦"]     <span class="c"># 항목</span></pre>
+          <p class="cap">
+            이 밖에 <b>"내용을 작성하세요"·"OO팀 OOO" 같은 예시 문구 자동 제거</b>,
+            <b>그 자리의 글꼴·크기를 읽어 그대로 입히기</b>,
+            <b>"총 &nbsp;&nbsp;명 참석" 빈칸에 인원수 자동 계산</b>,
+            <b>표 행 나눔 금지 해제</b>(긴 내용이 페이지 경계에서 통째로 밀리는 문제)를 자동 처리합니다.
+          </p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          2. 에러 없이 조용히 빈칸으로 깨지는 버그
+          <span class="sub">구현을 시작하기 전에 실측으로 규칙부터 확정했습니다.</span>
+        </summary>
+        <div class="dbody">
+          <p>
+            빈칸에 빨간 <span class="todo">입력필요</span>를 넣으려면 서식 있는 텍스트가 필요한데,
+            docxtpl에는 <strong>예외도 경고도 없이 그냥 빈칸으로 렌더되는</strong> 함정이 있었습니다.
+            코드를 다 짠 뒤에 발견했다면 구조를 되돌려야 했을 문제라,
+            <strong>구현 전에 라이브러리를 직접 돌려 규칙 3가지를 확정하고 문서화</strong>했습니다.
+          </p>
+          <div class="tblwrap">
+            <table class="data">
+              <thead><tr><th>규칙</th><th>안 지키면</th></tr></thead>
+              <tbody>
+                <tr><td>서식 텍스트는 <code>{{r ... }}</code>로만 넣는다</td>
+                    <td>run이 중첩된 잘못된 XML → <b>워드에서 빈칸</b></td></tr>
+                <tr><td>그 자리 값은 <b>값이 있어도</b> 항상 서식 객체로 감싼다</td>
+                    <td>평문을 주면 <b>빈칸</b></td></tr>
+                <tr><td>컨텍스트 키를 <b>이원화</b>한다 (평문 키 유지 + <code>_rt</code> 키 신설)</td>
+                    <td>사용자가 직접 쓰던 <code>{{ date }}</code> 양식이 <b>전부 깨짐</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap">
+            세 번째가 특히 <b>하위 호환</b>의 문제였습니다. 이미 표시자를 넣어 쓰던 사용자의 양식을
+            깨뜨리지 않으려고 컨텍스트를 <b>superset</b>으로 설계해, 기존 키는 그대로 두고
+            서식 키를 추가로 실어 보냅니다.
+          </p>
+          <p class="cap">
+            여기에 함정이 하나 더 있었습니다. 서식 자리는 <b>렌더 시점에 런이 새로 만들어져</b>
+            앞 단계에서 입혀 둔 양식 글꼴이 사라집니다. 그래서 문단에 글꼴을 표식으로 남겨 두고
+            <b>저장 직전 후처리에서 글꼴 없는 런에만</b> 채워 넣도록 했습니다.
+          </p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          3. 데모는 되는데 실사용에서 터지는 것들
+          <span class="sub">실제로 쓰면서 하나씩 막은 목록입니다.</span>
+        </summary>
+        <div class="dbody">
+          <div class="tblwrap">
+            <table class="data">
+              <thead><tr><th>실제로 겪은 문제</th><th>해결</th></tr></thead>
+              <tbody>
+                <tr><td>윈도우 콘솔이 cp949라 한글이 깨짐</td>
+                    <td>표준 출력 버퍼에 UTF-8로 직접 씀</td></tr>
+                <tr><td>메모장으로 저장한 설정 파일의 BOM 때문에 API 키 인식 실패</td>
+                    <td><code>utf-8-sig</code>로 읽어 BOM 제거</td></tr>
+                <tr><td>1시간 넘는 회의 녹음이 업로드 한도(25MB) 초과</td>
+                    <td>번들 ffmpeg로 16kHz 모노 자동 재인코딩 (원본 불변, 임시 파일 정리 보장)</td></tr>
+                <tr><td>사용자가 경로 대신 파일 이름만 말함</td>
+                    <td>작업 폴더 → 바탕화면 → 다운로드 → 문서 순 탐색 (깊이 제한·잡음 폴더 제외)</td></tr>
+                <tr><td>같은 날 비슷한 제목의 회의가 서로를 덮어씀</td>
+                    <td>파일명에 <code>_2</code>, <code>_3</code> 자동 부여</td></tr>
+                <tr><td>같은 회의를 여러 양식에 채우면 파일명 충돌</td>
+                    <td>양식명을 접두어로 (<span class="mono">KISA_회의록_…</span>)</td></tr>
+                <tr><td>API 키 미설정 · 라이브러리 미설치</td>
+                    <td>예외를 삼키지 않고 <b>원인과 해결 명령을 담은 메시지</b>로 변환</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          4. 요약이 "읽히는 회의록"이 되게 만들기
+          <span class="sub">코드로 풀 수 없는 부분은 지시문 자체를 설계했습니다.</span>
+        </summary>
+        <div class="dbody">
+          <p>초기 결과물을 직접 읽어 보며 발견한 문제를 규칙으로 바꿔 지시문에 못 박았습니다.</p>
+          <h3>결정 사항과 미결 사항을 절대 섞지 않는다</h3>
+          <p>회의록에서 가장 먼저 찾는 구분인데 LLM이 가장 자주 뭉개는 지점입니다.</p>
+          <pre><b>결정</b> ✓ "지역별 단가 예측 제외, 전국 단가로 진행"
+<b>미결</b> ✓ "LLM 구축형 vs 상용 API 미정 (직접 구축 시 보안·버전 관리 부담)"
+          <span class="c">└ 무엇이 걸려 있는지(쟁점·선택지)를 함께 적게 했습니다.</span></pre>
+          <h3>개조식 강제 — 단, 정보는 줄이지 않는다</h3>
+          <pre><span class="c">서술식 ✗</span> "라마단이 지난 8월 18일에 끝났습니다. 따라서 중동 항로의
+          거래량이 다시 늘어날 것으로 보입니다."
+<span class="c">개조식 ✓</span> "라마단 종료 후 중동항로 물동량 회복 예상 (8/18)"</pre>
+          <p class="cap">
+            처음에는 "짧게 써라"로만 지시했더니 <b>정보가 함께 사라졌습니다.</b>
+            그래서 <b>"문장을 줄이는 것이지 사실을 줄이는 게 아니다"</b>를 명시하고
+            좋은 예·나쁜 예를 함께 준 뒤에야 해결됐습니다.
+          </p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 역량 ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">06</span>역 량</div>
+    <div>
+      <h2>이 프로젝트로 보여드릴 수 있는 것</h2>
+
+      <div class="skills">
+        <div class="skill">
+          <p class="h">문제를 좁혀서 정의합니다</p>
+          <p>"회의록을 자동화한다"가 아니라 "요약 다음의 <b>복붙 구간</b>이 병목"이라고 좁힌 뒤 시작했습니다.
+             그래서 만든 것이 실제로 쓰입니다.</p>
+          <span class="ev">근거 <b>실사용 26건 · 양식 5종</b></span>
+        </div>
+        <div class="skill">
+          <p class="h">확장을 염두에 둔 설계를 하고, 증명합니다</p>
+          <p>단계를 계약으로만 연결했습니다. 주장만 한 게 아니라 <b>실제로 확장해 보고</b> 확인했습니다 —
+             STT 2종을 나중에 붙일 때 하위 계층 수정이 0줄이었습니다.</p>
+          <span class="ev">근거 <b>어댑터 3종 · 하위 수정 0줄</b></span>
+        </div>
+        <div class="skill">
+          <p class="h">테스트로 뒷받침합니다</p>
+          <p>프로덕션 코드보다 테스트를 더 많이 썼습니다. 가장 복잡한 모듈(848줄)에
+             가장 두꺼운 테스트(1,006줄)를 붙였고, 실제 워드 파일을 만들어 채우고 다시 읽는
+             E2E 검증까지 포함합니다.</p>
+          <span class="ev">근거 <b>186 passed / 9.64s</b></span>
+        </div>
+        <div class="skill">
+          <p class="h">실패를 조용히 넘기지 않습니다</p>
+          <p>라벨 칸에 값을 넣으려 하면 실행을 <b>멈춥니다.</b> 잘못 채워진 문서가 사용자에게
+             전달되는 것보다, 멈추고 이유를 알려주는 편이 낫다고 판단했습니다.</p>
+          <span class="ev">근거 <b>스키마 검증 · 어휘 제한 · 실패 경로 테스트</b></span>
+        </div>
+        <div class="skill">
+          <p class="h">모르는 라이브러리를 먼저 재 봅니다</p>
+          <p>docxtpl의 조용한 실패는 문서에 없는 동작이었습니다. <b>구현 전에 직접 돌려 확인</b>하고
+             제약 3가지를 규칙으로 남긴 뒤에 코드를 썼습니다.</p>
+          <span class="ev">근거 <b>설계 문서 6건 · 구현 계획 3건</b></span>
+        </div>
+        <div class="skill">
+          <p class="h">쓰는 사람 입장에서 마무리합니다</p>
+          <p>인코딩·파일 탐색·이름 충돌·업로드 한도처럼 데모에는 안 보이지만
+             실사용에서 반드시 터지는 것들을 하나씩 막았습니다.</p>
+          <span class="ev">근거 <b>실사용 대응 7종</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 회고 ══════════════ -->
+<section class="rise">
+  <div class="row">
+    <div class="label"><span class="n">07</span>회 고</div>
+    <div>
+      <h2>다시 한다면</h2>
+      <div class="two">
+        <div>
+          <h3>잘한 결정</h3>
+          <ul class="plain">
+            <li><b>계약을 스키마로 못 박은 것</b> — LLM 출력이 흔들려도 잘못된 문서가 나가지 않습니다.</li>
+            <li><b>미리 만들지 않은 것</b> — v1에서 STT는 자리만 비워 뒀습니다. 추상화를 미리 짓지 않고 <b>경계만</b> 그은 게 맞았습니다.</li>
+            <li><b>구현 전 실측</b> — 되돌리기 비싼 문제를 가장 싼 시점에 발견했습니다.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>어려웠던 점</h3>
+          <ul class="plain">
+            <li>양식 매핑은 <b>정답이 하나가 아닌</b> 문제입니다. 규칙을 코드에 다 넣으면 양식마다 예외가 터지고, LLM에 다 맡기면 문법이 깨집니다. <b>판단은 LLM, 문법은 코드</b>로 나눈 뒤에야 안정됐습니다.</li>
+            <li>문체 규칙은 <b>"짧게"만으로는 정보가 사라진다</b>는 걸 결과물을 읽고 나서야 알았습니다.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <h3>다음에 붙일 것</h3>
+      <ul class="plain">
+        <li>HWP 양식 직접 지원 <em class="q">(지금은 사용자가 .docx로 변환해야 합니다)</em></li>
+        <li>화자 분리로 발언자별 정리</li>
+        <li>출력 계층도 어댑터화 <em class="q">— 지금 확장 지점은 입력 쪽에만 있습니다</em></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="row">
+    <div class="label">부 기</div>
+    <div class="fine">
+      <p style="margin:0 0 .8em">
+        <span class="mono">.claude/skills/meeting-minutes/</span> —
+        <span class="mono">SKILL.md</span>(오케스트레이션 지시문) ·
+        <span class="mono">schema/</span>(단일 진실 원천) ·
+        <span class="mono">scripts/</span>(12모듈 + 어댑터 3종) ·
+        <span class="mono">references/</span>(조건부로 읽는 상세 규칙 3종) ·
+        <span class="mono">tests/</span>(186개)
+      </p>
+      <p style="margin:0">
+        지시문은 100줄로 유지하고 상세 규칙은 <span class="mono">references/</span>로 분리해
+        <b>해당 분기에 들어갈 때만</b> 읽게 했습니다 — 항상 전부 읽히면 지시문이 길어져
+        핵심 규칙의 준수율이 떨어지기 때문입니다.
+      </p>
+    </div>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var els = document.querySelectorAll('.rise');
+  if (!('IntersectionObserver' in window) ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    els.forEach(function(e){ e.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
+
+</body>
+</html>

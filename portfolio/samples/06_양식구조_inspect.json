@@ -1,0 +1,174 @@
+{
+  "has_tokens": false,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "index": 0
+    },
+    {
+      "type": "table",
+      "index": 0
+    }
+  ],
+  "tables": [
+    {
+      "index": 0,
+      "rows": 9,
+      "cols": 2,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "text": "제  목",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "text": "일  시",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "text": "참 석 자",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "text": "회의 목적",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "text": "논의 내용",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "text": "결정 사항",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 6,
+          "col": 0,
+          "text": "미결 사항",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 7,
+          "col": 0,
+          "text": "실행 항목",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 8,
+          "col": 0,
+          "text": "다음 회의",
+          "is_empty": false,
+          "merged": false,
+          "shaded": false
+        },
+        {
+          "row": 8,
+          "col": 1,
+          "text": "",
+          "is_empty": true,
+          "merged": false,
+          "shaded": false
+        }
+      ]
+    }
+  ],
+  "paragraphs": [
+    {
+      "index": 0,
+      "text": "회      의      록",
+      "is_empty": false,
+      "numbered": false
+    }
+  ]
+}

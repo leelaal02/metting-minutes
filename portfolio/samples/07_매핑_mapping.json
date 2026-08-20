@@ -1,0 +1,14 @@
+{
+  "table": 0,
+  "fills": [
+    {"row": 0, "col": 1, "mode": "inline", "fields": ["title"]},
+    {"row": 1, "col": 1, "mode": "inline", "fields": ["date"]},
+    {"row": 2, "col": 1, "mode": "inline", "fields": ["attendees"]},
+    {"row": 3, "col": 1, "mode": "block",  "fields": ["purpose"]},
+    {"row": 4, "col": 1, "mode": "block",  "fields": ["discussion"]},
+    {"row": 5, "col": 1, "mode": "block",  "fields": ["decisions"]},
+    {"row": 6, "col": 1, "mode": "block",  "fields": ["open_issues"]},
+    {"row": 7, "col": 1, "mode": "block",  "fields": ["action_items"]},
+    {"row": 8, "col": 1, "mode": "block",  "fields": ["next_meeting", "notes"]}
+  ]
+}
