@@ -29,9 +29,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-        with:
-          # 저장소에 Pages 사이트가 아직 없으면 이 단계에서 직접 만든다.
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: portfolio
