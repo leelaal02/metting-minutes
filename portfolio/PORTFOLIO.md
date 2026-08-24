@@ -9,8 +9,9 @@
 
 | | |
 |---|---|
-| 기간 | 2026.07.01 – 08.25 (8주) · 아이와즈 인턴십 (스킬 개발 5주) |
-| 역할 | 설계 · 구현 · 테스트 전담 (1인) |
+| 소속 | 아이와즈 · 인턴 (2026.07.01 – 08.25) |
+| 작업 기간 | 2026.07.16 – 08.20 · 5주 |
+| 역할 | 설계 · 구현 · 테스트 전 과정 단독 |
 | 스택 | Python · python-docx · docxtpl · jsonschema · pytest · Whisper(faster-whisper / Groq) |
 | 형태 | Claude Code Skill — `/meeting-minutes` |
 
