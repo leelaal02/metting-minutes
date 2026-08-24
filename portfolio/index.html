@@ -298,7 +298,7 @@ ul.plain li b{color:var(--ink)}
 
 <!-- ══════════════ 표제부 ══════════════ -->
 <header class="masthead">
-  <div class="eyebrow">개인 프로젝트 · 2026</div>
+  <div class="eyebrow">아이와즈 인턴십 · 2026</div>
   <h1>회의를 듣고<br><span class="thin">회사 양식에 채워 넣는</span> 파이프라인</h1>
   <p class="deck">
     녹음 파일이나 회의 메모를 넣으면 <b>10개 항목으로 구조화</b>되고,
@@ -306,7 +306,7 @@ ul.plain li b{color:var(--ink)}
     양식마다 다른 표 구조를 스스로 읽고 어느 칸에 무엇을 넣을지 판단합니다.
   </p>
   <dl class="meta">
-    <div><dt>기간</dt><dd>2026.07 – 08 <span class="mono">(5주)</span></dd></div>
+    <div><dt>기간</dt><dd>2026.07.01 – 08.25 <span class="mono">(8주)</span><br><span class="mono">스킬 개발 5주</span></dd></div>
     <div><dt>역할</dt><dd>설계 · 구현 · 테스트 전담 (1인)</dd></div>
     <div><dt>스택</dt><dd>Python · python-docx · docxtpl · jsonschema · pytest · Whisper</dd></div>
     <div><dt>형태</dt><dd>Claude Code Skill <span class="mono">/meeting-minutes</span></dd></div>
@@ -318,25 +318,26 @@ ul.plain li b{color:var(--ink)}
   <div class="row">
     <div class="label"><span class="n">01</span>성 과</div>
     <div>
-      <h2>만들고 끝낸 게 아니라, 실제로 쓰고 있습니다</h2>
+      <h2>양식이 바뀌어도 코드는 그대로입니다</h2>
       <p class="lead">
-        2026년 7월 27일부터 8월 20일까지 <strong>서로 다른 회사 양식 5종</strong>에
-        <strong>회의록 26건</strong>을 실제로 생성했습니다.
-        같은 회의를 5개 양식에 각각 채워도 재작업이 없었습니다.
+        표가 11행 2열인 양식, 표를 5개로 쪼갠 양식,
+        <strong>표가 아예 없는 문단형 양식</strong>까지
+        <strong>구조가 서로 다른 5종</strong>을 같은 코드로 채웠습니다.
+        새 양식을 붙일 때 고친 코드는 없습니다 — 매핑만 새로 판단합니다.
       </p>
 
       <div class="stats">
         <div class="stat hi">
-          <span class="v">26<span class="u">건</span></span>
-          <span class="k">실제 생성한 회의록 (2026.07.27 – 08.20)</span>
+          <span class="v">0<span class="u">줄</span></span>
+          <span class="k">새 양식이 와도 고치는 코드<br>매핑 판단만 새로 함</span>
         </div>
         <div class="stat hi">
           <span class="v">5<span class="u">종</span></span>
-          <span class="k">구조가 전혀 다른 회사 양식<br>KISA · 누리미디어 외 3종</span>
+          <span class="k">구조가 서로 다른 양식<br>회사 양식 3종 · 자체 검증 양식 2종</span>
         </div>
         <div class="stat hi">
-          <span class="v">0<span class="u">줄</span></span>
-          <span class="k">새 양식이 와도 고치는 코드<br>매핑 판단만 새로 함</span>
+          <span class="v">10<span class="u">항목</span></span>
+          <span class="k">양식이 달라도 바뀌지 않는<br>고정 스키마</span>
         </div>
         <div class="stat">
           <span class="v">44,481<span class="u">자</span></span>
@@ -351,8 +352,28 @@ ul.plain li b{color:var(--ink)}
           <span class="k">테스트 전부 통과<br>코드 2,191줄 : 테스트 2,355줄</span>
         </div>
       </div>
+
+      <h3>"구조가 다르다"는 게 어느 정도인지</h3>
+      <p>
+        아래는 실제로 채운 양식 5종의 표 구조입니다. 라벨 이름만 다른 수준이 아니라,
+        표의 개수와 열 수 자체가 다르고 표가 없는 것도 있습니다.
+      </p>
+      <div class="tblwrap">
+        <table class="data">
+          <thead><tr><th>양식</th><th>구분</th><th>표 개수</th><th>구조</th></tr></thead>
+          <tbody>
+            <tr><td>A사</td><td>회사</td><td>1개</td><td>11행 × 2열 — 라벨/값 세로 나열</td></tr>
+            <tr><td>B사</td><td>회사</td><td>2개</td><td>8행 × 4열 + Action Item 전용 18행 × 5열</td></tr>
+            <tr><td>C사</td><td>회사</td><td>1개</td><td><b>표 1행 × 1열 + 문단 83개</b> — 사실상 표가 없는 문단형</td></tr>
+            <tr><td>자체 1</td><td>검증</td><td><b>5개</b></td><td>항목마다 표가 쪼개짐 (2×6, 1×2, 2×3, 2×3, 1×2)</td></tr>
+            <tr><td>자체 2</td><td>검증</td><td>1개</td><td>10행 × 4열 — 주간 업무 회의 서식</td></tr>
+          </tbody>
+        </table>
+      </div>
       <p class="cap">
-        모든 수치는 저장소의 실제 산출물과 <code>pytest -q</code> 실행 결과에서 나온 값입니다.
+        회사 양식은 출처를 밝히지 않기 위해 A · B · C로 표기했습니다.
+        표 개수·행·열은 실제 산출물 <code>.docx</code>를 python-docx로 읽어 센 값이고,
+        나머지 수치도 저장소의 실제 산출물과 <code>pytest -q</code> 실행 결과에서 나왔습니다.
         <b>추정치나 예상치는 넣지 않았습니다.</b>
       </p>
     </div>
@@ -415,7 +436,7 @@ ul.plain li b{color:var(--ink)}
     <div>
       <h2>빈 양식이 이렇게 채워집니다</h2>
       <p>
-        아래는 실제로 처리한 <strong>KISA 회의록 양식</strong>의 구조입니다.
+        아래는 실제로 처리한 <strong>A사 회의록 양식</strong>의 구조입니다.
         왼쪽이 받은 그대로의 빈 양식, 오른쪽이 파이프라인이 채운 결과입니다.
         <em class="q">(회의 내용은 기밀 보호를 위해 저장소의 예시 데이터로 대체했습니다)</em>
       </p>
@@ -630,7 +651,7 @@ REGISTRY = {
           </div>
 
           <h3>실제로 만들어진 매핑</h3>
-          <pre><span class="c">// 앞에서 본 KISA 양식에 대해 실제로 생성된 mapping.json</span>
+          <pre><span class="c">// 앞에서 본 A사 양식에 대해 실제로 생성된 mapping.json</span>
 {"row": 1,  "col": 0, "mode": "inline", "fields": ["title"]},
 {"row": 3,  "col": 0, "mode": <span class="r">"todo"</span>},                    <span class="c">← 장소: 녹음에 없음 → "입력필요"</span>
 {"row": 4,  "col": 0, "mode": "inline", "fields": [<b>"purpose"</b>]},   <span class="c">← 두 번째 "제 목 :" 칸</span>
@@ -719,7 +740,7 @@ _ITEM_LADDER  = ["-", "·", "‣", "◦"]     <span class="c"># 항목</span></p
                 <tr><td>같은 날 비슷한 제목의 회의가 서로를 덮어씀</td>
                     <td>파일명에 <code>_2</code>, <code>_3</code> 자동 부여</td></tr>
                 <tr><td>같은 회의를 여러 양식에 채우면 파일명 충돌</td>
-                    <td>양식명을 접두어로 (<span class="mono">KISA_회의록_…</span>)</td></tr>
+                    <td>양식명을 접두어로 (<span class="mono">A사_회의록_…</span>)</td></tr>
                 <tr><td>API 키 미설정 · 라이브러리 미설치</td>
                     <td>예외를 삼키지 않고 <b>원인과 해결 명령을 담은 메시지</b>로 변환</td></tr>
               </tbody>
@@ -767,7 +788,7 @@ _ITEM_LADDER  = ["-", "·", "‣", "◦"]     <span class="c"># 항목</span></p
           <p class="h">문제를 좁혀서 정의합니다</p>
           <p>"회의록을 자동화한다"가 아니라 "요약 다음의 <b>복붙 구간</b>이 병목"이라고 좁힌 뒤 시작했습니다.
              그래서 만든 것이 실제로 쓰입니다.</p>
-          <span class="ev">근거 <b>실사용 26건 · 양식 5종</b></span>
+          <span class="ev">근거 <b>실무 회사 양식 3종에 실사용</b></span>
         </div>
         <div class="skill">
           <p class="h">확장을 염두에 둔 설계를 하고, 증명합니다</p>
